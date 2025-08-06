@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js"
+import { getDeviceInfo, type DeviceInfo } from './device-info'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -27,6 +28,7 @@ export interface Movement {
   botellon_quantity: number
   image_url: string
   notes?: string
+  device_info?: DeviceInfo
   created_at: string
   areas?: Area
 }
@@ -126,6 +128,43 @@ export async function uploadImage(file: File): Promise<string> {
     return url
   } catch (error) {
     console.error("Error uploading image:", error)
+    throw error
+  }
+}
+
+// Función para insertar movimientos con información del dispositivo
+export async function insertMovementWithDeviceInfo(movementData: {
+  type: "entrada" | "salida"
+  area_id: number
+  hielo_quantity: number
+  botellon_quantity: number
+  image_url: string
+  notes?: string
+}) {
+  try {
+    // Capturar información básica del dispositivo
+    const deviceInfo = getDeviceInfo()
+    
+    console.log('Device info captured:', deviceInfo) // Para debug
+    
+    const { data, error } = await supabase
+      .from("movements")
+      .insert({
+        ...movementData,
+        device_info: deviceInfo
+      })
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Supabase error:', error)
+      throw error
+    }
+    
+    console.log('Movement inserted successfully:', data) // Para debug
+    return data
+  } catch (error) {
+    console.error("Error inserting movement with device info:", error)
     throw error
   }
 }

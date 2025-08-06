@@ -6,8 +6,9 @@ import { useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent } from "@/components/ui/card"
-import { Camera, Upload, X, Loader2, ImageIcon } from 'lucide-react'
+import { Camera, Upload, X, Loader2, ImageIcon, Info } from 'lucide-react'
 import { uploadImage } from "@/lib/supabase"
+import { compressImage, getImageInfo } from "@/lib/image-compression"
 import { useToast } from "@/hooks/use-toast"
 
 interface ImageUploadProps {
@@ -18,10 +19,24 @@ interface ImageUploadProps {
 
 export function ImageUpload({ onImageUploaded, currentImage, required = false }: ImageUploadProps) {
   const [uploading, setUploading] = useState(false)
+  const [compressing, setCompressing] = useState(false)
   const [preview, setPreview] = useState<string | null>(currentImage || null)
+  const [imageInfo, setImageInfo] = useState<{
+    originalSize: number
+    compressedSize: number
+    compressionRatio: number
+  } | null>(null)
   const cameraInputRef = useRef<HTMLInputElement>(null)
   const galleryInputRef = useRef<HTMLInputElement>(null)
   const { toast } = useToast()
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return '0 Bytes'
+    const k = 1024
+    const sizes = ['Bytes', 'KB', 'MB', 'GB']
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+  }
 
   const handleFileSelect = async (file: File) => {
     if (!file) return
@@ -36,17 +51,44 @@ export function ImageUpload({ onImageUploaded, currentImage, required = false }:
       return
     }
 
-    // Validar tamaño (máximo 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      toast({
-        title: "Error",
-        description: "El archivo debe ser menor a 5MB",
-        variant: "destructive",
-      })
-      return
-    }
-
     try {
+      setCompressing(true)
+      
+      // Obtener información de la imagen original
+      const originalInfo = await getImageInfo(file)
+      const originalSize = file.size
+
+      // Comprimir imagen si es mayor a 500KB
+      let fileToUpload = file
+      let compressedSize = originalSize
+      
+      if (originalSize > 500 * 1024) { // 500KB
+        toast({
+          title: "Comprimiendo imagen",
+          description: "Optimizando imagen para reducir el tamaño...",
+        })
+
+        fileToUpload = await compressImage(file, {
+          maxWidth: 1200,
+          maxHeight: 1200,
+          quality: 0.8,
+          format: 'jpeg'
+        })
+        
+        compressedSize = fileToUpload.size
+      }
+
+      // Validar tamaño final (máximo 2MB después de compresión)
+      if (compressedSize > 2 * 1024 * 1024) {
+        toast({
+          title: "Error",
+          description: "La imagen es demasiado grande. Intenta con una imagen más pequeña.",
+          variant: "destructive",
+        })
+        return
+      }
+
+      setCompressing(false)
       setUploading(true)
 
       // Crear preview local
@@ -54,26 +96,37 @@ export function ImageUpload({ onImageUploaded, currentImage, required = false }:
       reader.onload = (e) => {
         setPreview(e.target?.result as string)
       }
-      reader.readAsDataURL(file)
+      reader.readAsDataURL(fileToUpload)
+
+      // Calcular ratio de compresión
+      const compressionRatio = ((originalSize - compressedSize) / originalSize) * 100
+
+      setImageInfo({
+        originalSize,
+        compressedSize,
+        compressionRatio
+      })
 
       // Subir imagen
-      const imageUrl = await uploadImage(file)
+      const imageUrl = await uploadImage(fileToUpload)
       onImageUploaded(imageUrl)
 
       toast({
         title: "Éxito",
-        description: "Imagen subida correctamente",
+        description: `Imagen subida correctamente${compressionRatio > 0 ? ` (reducida ${compressionRatio.toFixed(1)}%)` : ''}`,
       })
     } catch (error) {
       console.error("Error uploading image:", error)
       toast({
         title: "Error",
-        description: "No se pudo subir la imagen",
+        description: "No se pudo procesar la imagen",
         variant: "destructive",
       })
       setPreview(null)
+      setImageInfo(null)
     } finally {
       setUploading(false)
+      setCompressing(false)
     }
   }
 
@@ -93,6 +146,7 @@ export function ImageUpload({ onImageUploaded, currentImage, required = false }:
 
   const handleRemoveImage = () => {
     setPreview(null)
+    setImageInfo(null)
     onImageUploaded("")
     if (cameraInputRef.current) {
       cameraInputRef.current.value = ""
@@ -125,7 +179,7 @@ export function ImageUpload({ onImageUploaded, currentImage, required = false }:
         capture="environment"
         onChange={handleCameraCapture}
         className="hidden"
-        disabled={uploading}
+        disabled={uploading || compressing}
       />
 
       {/* Input oculto para galería */}
@@ -135,7 +189,7 @@ export function ImageUpload({ onImageUploaded, currentImage, required = false }:
         accept="image/*"
         onChange={handleGallerySelect}
         className="hidden"
-        disabled={uploading}
+        disabled={uploading || compressing}
       />
 
       {preview ? (
@@ -154,11 +208,26 @@ export function ImageUpload({ onImageUploaded, currentImage, required = false }:
                 size="icon"
                 className="absolute top-2 right-2"
                 onClick={handleRemoveImage}
-                disabled={uploading}
+                disabled={uploading || compressing}
               >
                 <X className="h-4 w-4" />
               </Button>
             </div>
+            
+            {/* Información de compresión */}
+            {imageInfo && imageInfo.compressionRatio > 0 && (
+              <div className="mt-3 p-2 bg-green-50 rounded-lg">
+                <div className="flex items-center gap-2 text-sm text-green-700">
+                  <Info className="h-4 w-4" />
+                  <span>Imagen optimizada</span>
+                </div>
+                <div className="text-xs text-green-600 mt-1">
+                  Tamaño original: {formatFileSize(imageInfo.originalSize)} → 
+                  Comprimida: {formatFileSize(imageInfo.compressedSize)} 
+                  ({imageInfo.compressionRatio.toFixed(1)}% reducción)
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       ) : (
@@ -166,10 +235,21 @@ export function ImageUpload({ onImageUploaded, currentImage, required = false }:
           <CardContent className="p-6">
             <div className="text-center space-y-4">
               <div className="mx-auto h-12 w-12 text-gray-400 mb-4">
-                {uploading ? <Loader2 className="h-12 w-12 animate-spin" /> : <Upload className="h-12 w-12" />}
+                {compressing ? (
+                  <Loader2 className="h-12 w-12 animate-spin text-blue-600" />
+                ) : uploading ? (
+                  <Loader2 className="h-12 w-12 animate-spin" />
+                ) : (
+                  <Upload className="h-12 w-12" />
+                )}
               </div>
               
-              {uploading ? (
+              {compressing ? (
+                <div className="space-y-2">
+                  <p className="text-sm text-blue-600 font-medium">Comprimiendo imagen...</p>
+                  <p className="text-xs text-gray-500">Optimizando para reducir el tamaño</p>
+                </div>
+              ) : uploading ? (
                 <div className="space-y-2">
                   <p className="text-sm text-gray-600">Subiendo imagen...</p>
                   <div className="w-full bg-gray-200 rounded-full h-2">
@@ -185,7 +265,7 @@ export function ImageUpload({ onImageUploaded, currentImage, required = false }:
                       type="button" 
                       variant="outline" 
                       onClick={handleCameraClick} 
-                      disabled={uploading}
+                      disabled={uploading || compressing}
                       className="flex flex-col items-center gap-2 h-auto py-4"
                     >
                       <Camera className="h-6 w-6 text-blue-600" />
@@ -199,7 +279,7 @@ export function ImageUpload({ onImageUploaded, currentImage, required = false }:
                       type="button" 
                       variant="outline" 
                       onClick={handleGalleryClick} 
-                      disabled={uploading}
+                      disabled={uploading || compressing}
                       className="flex flex-col items-center gap-2 h-auto py-4"
                     >
                       <ImageIcon className="h-6 w-6 text-green-600" />
@@ -212,7 +292,9 @@ export function ImageUpload({ onImageUploaded, currentImage, required = false }:
                 </div>
               )}
               
-              <p className="text-xs text-gray-500">PNG, JPG, GIF hasta 5MB</p>
+              <p className="text-xs text-gray-500">
+                Las imágenes se comprimen automáticamente para optimizar el almacenamiento
+              </p>
             </div>
           </CardContent>
         </Card>

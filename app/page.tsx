@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
-import { CalendarDays, Package, TrendingDown, TrendingUp, Snowflake, Droplets, AlertTriangle, RefreshCw, MapPin, ArrowDown, ArrowUp } from 'lucide-react'
+import { CalendarDays, Package, TrendingDown, TrendingUp, Snowflake, Droplets, AlertTriangle, RefreshCw, MapPin, ArrowDown, ArrowUp, Smartphone } from 'lucide-react'
 import {
   supabase,
   type InventoryItem,
@@ -20,6 +20,7 @@ import {
   type Area,
   checkTablesExist,
   initializeDefaultData,
+  insertMovementWithDeviceInfo,
 } from "@/lib/supabase"
 import { StockAlertModal } from "@/components/stock-alert-modal"
 import { AreaSelector } from "@/components/area-selector"
@@ -29,6 +30,7 @@ import { useToast } from "@/hooks/use-toast"
 import { ValidationModal } from "@/components/validation-modal"
 import { Reports } from "@/components/reports"
 import { CompanyLogo } from "@/components/company-logo"
+import { PasswordModal } from "@/components/password-modal"
 
 export default function InventoryControl() {
   const [inventory, setInventory] = useState<InventoryItem[]>([])
@@ -66,6 +68,9 @@ export default function InventoryControl() {
     message: "",
     details: [] as string[],
   })
+
+  const [showPasswordModal, setShowPasswordModal] = useState(false)
+  const [pendingSubmission, setPendingSubmission] = useState<any>(null)
 
   // Cargar datos iniciales
   useEffect(() => {
@@ -224,6 +229,20 @@ export default function InventoryControl() {
       return
     }
 
+    // Si es entrada, solicitar contraseña
+    if (formData.type === "entrada") {
+      setPendingSubmission({
+        type: formData.type,
+        area_id: 1,
+        hielo_quantity: hieloQty,
+        botellon_quantity: botellonQty,
+        image_url: formData.imageUrl,
+        notes: formData.notes || undefined,
+      })
+      setShowPasswordModal(true)
+      return
+    }
+
     try {
       setSubmitting(true)
 
@@ -258,17 +277,15 @@ export default function InventoryControl() {
         }
       }
 
-      // Insertar movimiento
-      const { error: movementError } = await supabase.from("movements").insert({
+      // Insertar movimiento con información del dispositivo
+      await insertMovementWithDeviceInfo({
         type: formData.type,
-        area_id: formData.type === "entrada" ? 1 : Number.parseInt(formData.area), // Usar área administrativa por defecto para entradas
+        area_id: formData.type === "entrada" ? 1 : Number.parseInt(formData.area),
         hielo_quantity: hieloQty,
         botellon_quantity: botellonQty,
         image_url: formData.imageUrl,
-        notes: formData.notes || null,
+        notes: formData.notes || undefined,
       })
-
-      if (movementError) throw movementError
 
       // Actualizar inventario
       const updates = []
@@ -360,6 +377,85 @@ export default function InventoryControl() {
     ) : (
       <ArrowUp className="h-4 w-4 text-red-600" />
     )
+  }
+
+  const handlePasswordSuccess = async () => {
+    setShowPasswordModal(false)
+    
+    if (!pendingSubmission) return
+    
+    try {
+      setSubmitting(true)
+
+      // Insertar movimiento con información del dispositivo
+      await insertMovementWithDeviceInfo(pendingSubmission)
+
+      // Actualizar inventario (código existente para actualizar hielo y botellones)
+      const hieloQty = pendingSubmission.hielo_quantity
+      const botellonQty = pendingSubmission.botellon_quantity
+      
+      const hieloItem = inventory.find((item) => item.product === "hielo")
+      const botellonItem = inventory.find((item) => item.product === "botellon")
+
+      const updates = []
+
+      if (hieloQty > 0 && hieloItem) {
+        const newHieloQuantity = hieloItem.quantity + hieloQty
+        updates.push(supabase.from("inventory").update({ quantity: newHieloQuantity }).eq("product", "hielo"))
+      }
+
+      if (botellonQty > 0 && botellonItem) {
+        const newBotellonQuantity = botellonItem.quantity + botellonQty
+        updates.push(supabase.from("inventory").update({ quantity: newBotellonQuantity }).eq("product", "botellon"))
+      }
+
+      // Ejecutar todas las actualizaciones
+      const results = await Promise.all(updates)
+      const errors = results.filter((result) => result.error)
+
+      if (errors.length > 0) {
+        throw new Error("Error al actualizar inventario")
+      }
+
+      // Recargar datos
+      await loadData()
+
+      // Limpiar formulario
+      setFormData({
+        type: "",
+        area: "",
+        hieloQuantity: "",
+        botellonQuantity: "",
+        imageUrl: "",
+        notes: "",
+      })
+
+      setPendingSubmission(null)
+
+      showValidationModal(
+        "success",
+        "Entrada Registrada",
+        "La entrada se ha registrado correctamente con autorización",
+        [
+          `Hielo: ${hieloQty} bolsas`,
+          `Botellones: ${botellonQty} unidades`,
+        ].filter(Boolean),
+      )
+    } catch (error) {
+      console.error("Error submitting entry:", error)
+      toast({
+        title: "Error",
+        description: "No se pudo registrar la entrada",
+        variant: "destructive",
+      })
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const handlePasswordCancel = () => {
+    setShowPasswordModal(false)
+    setPendingSubmission(null)
   }
 
   if (dbError) {
@@ -633,6 +729,7 @@ export default function InventoryControl() {
                         <TableHead>Área</TableHead>
                         <TableHead>Hielo</TableHead>
                         <TableHead>Botellones</TableHead>
+                        <TableHead>Dispositivo</TableHead>
                         <TableHead>Fotografía</TableHead>
                         <TableHead>Notas</TableHead>
                       </TableRow>
@@ -640,7 +737,7 @@ export default function InventoryControl() {
                     <TableBody>
                       {movements.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={8} className="text-center text-muted-foreground">
+                          <TableCell colSpan={9} className="text-center text-muted-foreground">
                             No hay movimientos registrados
                           </TableCell>
                         </TableRow>
@@ -693,6 +790,14 @@ export default function InventoryControl() {
                                 )}
                               </TableCell>
                               <TableCell>
+                                <div className="flex items-center gap-1">
+                                  <Smartphone className="h-3 w-3 text-gray-500" />
+                                  <span className="text-xs text-gray-600 max-w-24 truncate">
+                                    {movement.device_info?.browser || 'Desconocido'} - {movement.device_info?.os_name || 'N/A'}
+                                  </span>
+                                </div>
+                              </TableCell>
+                              <TableCell>
                                 <ImageViewer
                                   imageUrl={movement.image_url}
                                   alt={`Movimiento ${movement.type} - ${movement.areas?.name}`}
@@ -715,7 +820,7 @@ export default function InventoryControl() {
           <TabsContent value="reportes" className="space-y-4">
             <Reports movements={movements} areas={areas} />
           </TabsContent>
-        </Tabs>
+        </tabs>
 
         {/* Modal de alerta de stock bajo */}
         <StockAlertModal
@@ -732,6 +837,13 @@ export default function InventoryControl() {
           title={validationModal.title}
           message={validationModal.message}
           details={validationModal.details}
+        />
+
+        {/* Modal de contraseña */}
+        <PasswordModal
+          isOpen={showPasswordModal}
+          onClose={handlePasswordCancel}
+          onSuccess={handlePasswordSuccess}
         />
       </div>
     </div>
