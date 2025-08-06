@@ -504,348 +504,348 @@ export default function InventoryControl() {
     )
   }
 
-  return (
-    <div className="min-h-screen bg-gray-50 p-4">
-      <div className="max-w-6xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="text-center space-y-4">
-          <div className="flex items-center justify-center">
-            <CompanyLogo />
-          </div>
-          <p className="text-gray-600">Gestión de hielo y botellones de agua por áreas</p>
-          <Button onClick={loadData} variant="outline" size="sm" disabled={loading}>
-            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
-            Actualizar
-          </Button>
+return (
+  <div className="min-h-screen bg-gray-50 p-4">
+    <div className="max-w-6xl mx-auto space-y-6">
+      {/* Header */}
+      <div className="text-center space-y-4">
+        <div className="flex items-center justify-center">
+          <CompanyLogo />
         </div>
+        <p className="text-gray-600">Gestión de hielo y botellones de agua por áreas</p>
+        <Button onClick={loadData} variant="outline" size="sm" disabled={loading}>
+          <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
+          Actualizar
+        </Button>
+      </div>
 
-        {/* Inventario Actual */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      {/* Inventario Actual */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Hielo</CardTitle>
+            <div className="flex items-center gap-2">
+              <Snowflake className="h-4 w-4 text-blue-600" />
+              {getInventoryByProduct("hielo") <= (inventory.find((i) => i.product === "hielo")?.min_stock || 0) && (
+                <AlertTriangle className="h-4 w-4 text-red-500" />
+              )}
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-600">{getInventoryByProduct("hielo")}</div>
+            <p className="text-xs text-muted-foreground">bolsas en stock</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Botellones</CardTitle>
+            <div className="flex items-center gap-2">
+              <Droplets className="h-4 w-4 text-cyan-600" />
+              {getInventoryByProduct("botellon") <=
+                (inventory.find((i) => i.product === "botellon")?.min_stock || 0) && (
+                <AlertTriangle className="h-4 w-4 text-red-500" />
+              )}
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-cyan-600">{getInventoryByProduct("botellon")}</div>
+            <p className="text-xs text-muted-foreground">unidades en stock</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Entradas</CardTitle>
+            <div className="flex items-center gap-1">
+              <ArrowDown className="h-4 w-4 text-green-600" />
+              <TrendingUp className="h-4 w-4 text-green-600" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">{getTotalMovements("entrada")}</div>
+            <p className="text-xs text-muted-foreground">movimientos hoy</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Salidas</CardTitle>
+            <div className="flex items-center gap-1">
+              <ArrowUp className="h-4 w-4 text-red-600" />
+              <TrendingDown className="h-4 w-4 text-red-600" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-600">{getTotalMovements("salida")}</div>
+            <p className="text-xs text-muted-foreground">movimientos hoy</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Tabs para operaciones */}
+      <Tabs defaultValue="registro" className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="registro">Registrar Movimiento</TabsTrigger>
+          <TabsTrigger value="historial">Historial</TabsTrigger>
+          <TabsTrigger value="reportes">Reportes</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="registro" className="space-y-4">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Hielo</CardTitle>
-              <div className="flex items-center gap-2">
-                <Snowflake className="h-4 w-4 text-blue-600" />
-                {getInventoryByProduct("hielo") <= (inventory.find((i) => i.product === "hielo")?.min_stock || 0) && (
-                  <AlertTriangle className="h-4 w-4 text-red-500" />
-                )}
-              </div>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Package className="h-5 w-5" />
+                Nuevo Movimiento
+              </CardTitle>
+              <CardDescription>
+                Registra entradas y salidas de productos. Puedes incluir hielo, botellones o ambos en el mismo
+                movimiento. La fotografía es obligatoria.
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-blue-600">{getInventoryByProduct("hielo")}</div>
-              <p className="text-xs text-muted-foreground">bolsas en stock</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Botellones</CardTitle>
-              <div className="flex items-center gap-2">
-                <Droplets className="h-4 w-4 text-cyan-600" />
-                {getInventoryByProduct("botellon") <=
-                  (inventory.find((i) => i.product === "botellon")?.min_stock || 0) && (
-                  <AlertTriangle className="h-4 w-4 text-red-500" />
-                )}
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-cyan-600">{getInventoryByProduct("botellon")}</div>
-              <p className="text-xs text-muted-foreground">unidades en stock</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Entradas</CardTitle>
-              <div className="flex items-center gap-1">
-                <ArrowDown className="h-4 w-4 text-green-600" />
-                <TrendingUp className="h-4 w-4 text-green-600" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600">{getTotalMovements("entrada")}</div>
-              <p className="text-xs text-muted-foreground">movimientos hoy</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Salidas</CardTitle>
-              <div className="flex items-center gap-1">
-                <ArrowUp className="h-4 w-4 text-red-600" />
-                <TrendingDown className="h-4 w-4 text-red-600" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-red-600">{getTotalMovements("salida")}</div>
-              <p className="text-xs text-muted-foreground">movimientos hoy</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Tabs para operaciones */}
-        <Tabs defaultValue="registro" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="registro">Registrar Movimiento</TabsTrigger>
-            <TabsTrigger value="historial">Historial</TabsTrigger>
-            <TabsTrigger value="reportes">Reportes</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="registro" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Package className="h-5 w-5" />
-                  Nuevo Movimiento
-                </CardTitle>
-                <CardDescription>
-                  Registra entradas y salidas de productos. Puedes incluir hielo, botellones o ambos en el mismo
-                  movimiento. La fotografía es obligatoria.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="type">Tipo de Movimiento</Label>
-                      <Select
-                        value={formData.type}
-                        onValueChange={(value) =>
-                          setFormData((prev) => ({ ...prev, type: value, area: value === "entrada" ? "1" : "" }))
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecciona el tipo" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="entrada">
-                            <div className="flex items-center gap-2">
-                              <ArrowDown className="h-4 w-4 text-green-600" />
-                              Entrada
-                            </div>
-                          </SelectItem>
-                          <SelectItem value="salida">
-                            <div className="flex items-center gap-2">
-                              <ArrowUp className="h-4 w-4 text-red-600" />
-                              Salida
-                            </div>
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {formData.type === "salida" && (
-                      <AreaSelector
-                        areas={areas}
-                        selectedArea={formData.area}
-                        onAreaChange={(areaId) => setFormData((prev) => ({ ...prev, area: areaId }))}
-                        onAreaAdded={handleAreaAdded}
-                      />
-                    )}
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="hieloQuantity" className="flex items-center gap-2">
-                        <Snowflake className="h-4 w-4 text-blue-600" />
-                        Cantidad de Hielo (Máx. 50)
-                      </Label>
-                      <Input
-                        id="hieloQuantity"
-                        type="number"
-                        min="0"
-                        max="50"
-                        placeholder="0"
-                        value={formData.hieloQuantity}
-                        onChange={(e) => setFormData((prev) => ({ ...prev, hieloQuantity: e.target.value }))}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="botellonQuantity" className="flex items-center gap-2">
-                        <Droplets className="h-4 w-4 text-cyan-600" />
-                        Cantidad de Botellones (Máx. 50)
-                      </Label>
-                      <Input
-                        id="botellonQuantity"
-                        type="number"
-                        min="0"
-                        max="50"
-                        placeholder="0"
-                        value={formData.botellonQuantity}
-                        onChange={(e) => setFormData((prev) => ({ ...prev, botellonQuantity: e.target.value }))}
-                      />
-                    </div>
-                  </div>
-
-                  <ImageUpload
-                    onImageUploaded={(url) => setFormData((prev) => ({ ...prev, imageUrl: url }))}
-                    currentImage={formData.imageUrl}
-                    required={true}
-                  />
-
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="notes">Notas (Opcional)</Label>
-                    <Textarea
-                      id="notes"
-                      placeholder="Observaciones adicionales..."
-                      value={formData.notes}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, notes: e.target.value }))}
+                    <Label htmlFor="type">Tipo de Movimiento</Label>
+                    <Select
+                      value={formData.type}
+                      onValueChange={(value) =>
+                        setFormData((prev) => ({ ...prev, type: value, area: value === "entrada" ? "1" : "" }))
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecciona el tipo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="entrada">
+                          <div className="flex items-center gap-2">
+                            <ArrowDown className="h-4 w-4 text-green-600" />
+                            Entrada
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="salida">
+                          <div className="flex items-center gap-2">
+                            <ArrowUp className="h-4 w-4 text-red-600" />
+                            Salida
+                          </div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {formData.type === "salida" && (
+                    <AreaSelector
+                      areas={areas}
+                      selectedArea={formData.area}
+                      onAreaChange={(areaId) => setFormData((prev) => ({ ...prev, area: areaId }))}
+                      onAreaAdded={handleAreaAdded}
+                    />
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="hieloQuantity" className="flex items-center gap-2">
+                      <Snowflake className="h-4 w-4 text-blue-600" />
+                      Cantidad de Hielo (Máx. 50)
+                    </Label>
+                    <Input
+                      id="hieloQuantity"
+                      type="number"
+                      min="0"
+                      max="50"
+                      placeholder="0"
+                      value={formData.hieloQuantity}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, hieloQuantity: e.target.value }))}
                     />
                   </div>
 
-                  <Button type="submit" className="w-full" disabled={submitting}>
-                    {submitting ? (
-                      <>
-                        <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                        Registrando...
-                      </>
-                    ) : (
-                      "Registrar Movimiento"
-                    )}
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="historial" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <CalendarDays className="h-5 w-5" />
-                  Historial de Movimientos
-                </CardTitle>
-                <CardDescription>Registro completo de entradas y salidas por área con fotografías</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Fecha</TableHead>
-                        <TableHead>Hora</TableHead>
-                        <TableHead>Tipo</TableHead>
-                        <TableHead>Área</TableHead>
-                        <TableHead>Hielo</TableHead>
-                        <TableHead>Botellones</TableHead>
-                        <TableHead>Dispositivo</TableHead>
-                        <TableHead>Fotografía</TableHead>
-                        <TableHead>Notas</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {movements.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={9} className="text-center text-muted-foreground">
-                            No hay movimientos registrados
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        movements.map((movement) => {
-                          const { date, time } = formatDateTime(movement.created_at)
-                          return (
-                            <TableRow key={movement.id}>
-                              <TableCell>{date}</TableCell>
-                              <TableCell>{time}</TableCell>
-                              <TableCell>
-                                <Badge
-                                  variant={movement.type === "entrada" ? "default" : "destructive"}
-                                  className={
-                                    movement.type === "entrada"
-                                      ? "bg-green-100 text-green-800"
-                                      : "bg-red-100 text-red-800"
-                                  }
-                                >
-                                  <div className="flex items-center gap-1">
-                                    {getMovementIcon(movement.type)}
-                                    {movement.type === "entrada" ? "Entrada" : "Salida"}
-                                  </div>
-                                </Badge>
-                              </TableCell>
-                              <TableCell>
-                                <div className="flex items-center gap-2">
-                                  <MapPin className="h-4 w-4 text-gray-500" />
-                                  {movement.areas?.name || "N/A"}
-                                </div>
-                              </TableCell>
-                              <TableCell>
-                                {movement.hielo_quantity > 0 ? (
-                                  <div className="flex items-center gap-1">
-                                    <Snowflake className="h-4 w-4 text-blue-600" />
-                                    <span className="font-medium">{movement.hielo_quantity}</span>
-                                  </div>
-                                ) : (
-                                  <span className="text-muted-foreground">-</span>
-                                )}
-                              </TableCell>
-                              <TableCell>
-                                {movement.botellon_quantity > 0 ? (
-                                  <div className="flex items-center gap-1">
-                                    <Droplets className="h-4 w-4 text-cyan-600" />
-                                    <span className="font-medium">{movement.botellon_quantity}</span>
-                                  </div>
-                                ) : (
-                                  <span className="text-muted-foreground">-</span>
-                                )}
-                              </TableCell>
-                              <TableCell>
-                                <div className="flex items-center gap-1">
-                                  <Smartphone className="h-3 w-3 text-gray-500" />
-                                  <span className="text-xs text-gray-600 max-w-24 truncate">
-                                    {movement.device_info?.browser || 'Desconocido'} - {movement.device_info?.os_name || 'N/A'}
-                                  </span>
-                                </div>
-                              </TableCell>
-                              <TableCell>
-                                <ImageViewer
-                                  imageUrl={movement.image_url}
-                                  alt={`Movimiento ${movement.type} - ${movement.areas?.name}`}
-                                />
-                              </TableCell>
-                              <TableCell className="text-muted-foreground max-w-32 truncate">
-                                {movement.notes || "-"}
-                              </TableCell>
-                            </TableRow>
-                          )
-                        })
-                      )}
-                    </TableBody>
-                  </Table>
+                  <div className="space-y-2">
+                    <Label htmlFor="botellonQuantity" className="flex items-center gap-2">
+                      <Droplets className="h-4 w-4 text-cyan-600" />
+                      Cantidad de Botellones (Máx. 50)
+                    </Label>
+                    <Input
+                      id="botellonQuantity"
+                      type="number"
+                      min="0"
+                      max="50"
+                      placeholder="0"
+                      value={formData.botellonQuantity}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, botellonQuantity: e.target.value }))}
+                    />
+                  </div>
                 </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
 
-          <TabsContent value="reportes" className="space-y-4">
-            <Reports movements={movements} areas={areas} />
-          </TabsContent>
-        </tabs>
+                <ImageUpload
+                  onImageUploaded={(url) => setFormData((prev) => ({ ...prev, imageUrl: url }))}
+                  currentImage={formData.imageUrl}
+                  required={true}
+                />
 
-        {/* Modal de alerta de stock bajo */}
-        <StockAlertModal
-          isOpen={showStockAlert}
-          onClose={() => setShowStockAlert(false)}
-          lowStockItems={lowStockItems}
-        />
+                <div className="space-y-2">
+                  <Label htmlFor="notes">Notas (Opcional)</Label>
+                  <Textarea
+                    id="notes"
+                    placeholder="Observaciones adicionales..."
+                    value={formData.notes}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, notes: e.target.value }))}
+                  />
+                </div>
 
-        {/* Modal de validación */}
-        <ValidationModal
-          isOpen={validationModal.isOpen}
-          onClose={() => setValidationModal((prev) => ({ ...prev, isOpen: false }))}
-          type={validationModal.type}
-          title={validationModal.title}
-          message={validationModal.message}
-          details={validationModal.details}
-        />
+                <Button type="submit" className="w-full" disabled={submitting}>
+                  {submitting ? (
+                    <>
+                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                      Registrando...
+                    </>
+                  ) : (
+                    "Registrar Movimiento"
+                  )}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-        {/* Modal de contraseña */}
-        <PasswordModal
-          isOpen={showPasswordModal}
-          onClose={handlePasswordCancel}
-          onSuccess={handlePasswordSuccess}
-        />
-      </div>
+        <TabsContent value="historial" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CalendarDays className="h-5 w-5" />
+                Historial de Movimientos
+              </CardTitle>
+              <CardDescription>Registro completo de entradas y salidas por área con fotografías</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Fecha</TableHead>
+                      <TableHead>Hora</TableHead>
+                      <TableHead>Tipo</TableHead>
+                      <TableHead>Área</TableHead>
+                      <TableHead>Hielo</TableHead>
+                      <TableHead>Botellones</TableHead>
+                      <TableHead>Dispositivo</TableHead>
+                      <TableHead>Fotografía</TableHead>
+                      <TableHead>Notas</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {movements.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={9} className="text-center text-muted-foreground">
+                          No hay movimientos registrados
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      movements.map((movement) => {
+                        const { date, time } = formatDateTime(movement.created_at)
+                        return (
+                          <TableRow key={movement.id}>
+                            <TableCell>{date}</TableCell>
+                            <TableCell>{time}</TableCell>
+                            <TableCell>
+                              <Badge
+                                variant={movement.type === "entrada" ? "default" : "destructive"}
+                                className={
+                                  movement.type === "entrada"
+                                    ? "bg-green-100 text-green-800"
+                                    : "bg-red-100 text-red-800"
+                                }
+                              >
+                                <div className="flex items-center gap-1">
+                                  {getMovementIcon(movement.type)}
+                                  {movement.type === "entrada" ? "Entrada" : "Salida"}
+                                </div>
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <MapPin className="h-4 w-4 text-gray-500" />
+                                {movement.areas?.name || "N/A"}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              {movement.hielo_quantity > 0 ? (
+                                <div className="flex items-center gap-1">
+                                  <Snowflake className="h-4 w-4 text-blue-600" />
+                                  <span className="font-medium">{movement.hielo_quantity}</span>
+                                </div>
+                              ) : (
+                                <span className="text-muted-foreground">-</span>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              {movement.botellon_quantity > 0 ? (
+                                <div className="flex items-center gap-1">
+                                  <Droplets className="h-4 w-4 text-cyan-600" />
+                                  <span className="font-medium">{movement.botellon_quantity}</span>
+                                </div>
+                              ) : (
+                                <span className="text-muted-foreground">-</span>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-1">
+                                <Smartphone className="h-3 w-3 text-gray-500" />
+                                <span className="text-xs text-gray-600 max-w-24 truncate">
+                                  {movement.device_info?.browser || 'Desconocido'} - {movement.device_info?.os_name || 'N/A'}
+                                </span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <ImageViewer
+                                imageUrl={movement.image_url}
+                                alt={`Movimiento ${movement.type} - ${movement.areas?.name}`}
+                              />
+                            </TableCell>
+                            <TableCell className="text-muted-foreground max-w-32 truncate">
+                              {movement.notes || "-"}
+                            </TableCell>
+                          </TableRow>
+                        )
+                      })
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="reportes" className="space-y-4">
+          <Reports movements={movements} areas={areas} />
+        </TabsContent>
+      </Tabs>
+
+      {/* Modal de alerta de stock bajo */}
+      <StockAlertModal
+        isOpen={showStockAlert}
+        onClose={() => setShowStockAlert(false)}
+        lowStockItems={lowStockItems}
+      />
+
+      {/* Modal de validación */}
+      <ValidationModal
+        isOpen={validationModal.isOpen}
+        onClose={() => setValidationModal((prev) => ({ ...prev, isOpen: false }))}
+        type={validationModal.type}
+        title={validationModal.title}
+        message={validationModal.message}
+        details={validationModal.details}
+      />
+
+      {/* Modal de contraseña */}
+      <PasswordModal
+        isOpen={showPasswordModal}
+        onClose={handlePasswordCancel}
+        onSuccess={handlePasswordSuccess}
+      />
     </div>
-  )
+  </div>
+)
 }
