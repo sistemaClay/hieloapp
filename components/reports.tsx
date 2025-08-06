@@ -22,7 +22,7 @@ import {
   LineChart,
   Line,
 } from "recharts"
-import { CalendarDays, BarChart3, Download, Filter, Snowflake, Droplets, TrendingUp, MapPin } from "lucide-react"
+import { CalendarDays, BarChart3, Download, Filter, Snowflake, Droplets, TrendingUp, MapPin } from 'lucide-react'
 import type { Movement, Area } from "@/lib/supabase"
 import { useToast } from "@/hooks/use-toast"
 
@@ -56,8 +56,10 @@ export function Reports({ movements, areas }: ReportsProps) {
     startDate: "",
     endDate: "",
   })
-  const [selectedArea, setSelectedArea] = useState<string>("all")
   const { toast } = useToast()
+
+  // Obtener fecha actual en formato YYYY-MM-DD
+  const today = new Date().toISOString().split('T')[0]
 
   useEffect(() => {
     generateConsumptionReport()
@@ -158,13 +160,35 @@ export function Reports({ movements, areas }: ReportsProps) {
   }
 
   const getTopConsumingAreas = () => {
-    return consumptionData
+    // Crear una copia del array antes de ordenar
+    return [...consumptionData]
       .sort((a, b) => b.total - a.total)
       .slice(0, 5)
       .map((item, index) => ({
         ...item,
         color: COLORS[index % COLORS.length],
       }))
+  }
+
+  // Función para procesar datos de línea de tiempo sin mutar el array original
+  const getTimelineData = () => {
+    const processedData: any[] = []
+    
+    entryData.forEach((entry) => {
+      const existingDate = processedData.find((item) => item.date === entry.date)
+      if (existingDate) {
+        existingDate.hielo += entry.hielo_quantity
+        existingDate.botellon += entry.botellon_quantity
+      } else {
+        processedData.push({
+          date: entry.date,
+          hielo: entry.hielo_quantity,
+          botellon: entry.botellon_quantity,
+        })
+      }
+    })
+    
+    return processedData
   }
 
   return (
@@ -279,7 +303,7 @@ export function Reports({ movements, areas }: ReportsProps) {
                   <Tooltip
                     formatter={(value, name, props) => [
                       `${value} productos`,
-                      `${props.payload.area} (${((value / getTotalConsumption().total) * 100).toFixed(1)}%)`,
+                      `${props.payload.area} (${((Number(value) / getTotalConsumption().total) * 100).toFixed(1)}%)`,
                     ]}
                   />
                   <Legend
@@ -302,7 +326,7 @@ export function Reports({ movements, areas }: ReportsProps) {
                 Filtros de Búsqueda
               </CardTitle>
               <CardDescription>
-                Selecciona el rango de fechas para generar el reporte de entradas totales
+                Selecciona el rango de fechas para generar el reporte de entradas (no se pueden seleccionar fechas futuras)
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -312,6 +336,7 @@ export function Reports({ movements, areas }: ReportsProps) {
                   <Input
                     id="startDate"
                     type="date"
+                    max={today}
                     value={dateRange.startDate}
                     onChange={(e) => setDateRange((prev) => ({ ...prev, startDate: e.target.value }))}
                   />
@@ -322,6 +347,7 @@ export function Reports({ movements, areas }: ReportsProps) {
                   <Input
                     id="endDate"
                     type="date"
+                    max={today}
                     value={dateRange.endDate}
                     onChange={(e) => setDateRange((prev) => ({ ...prev, endDate: e.target.value }))}
                   />
@@ -441,20 +467,7 @@ export function Reports({ movements, areas }: ReportsProps) {
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
                   <LineChart
-                    data={entryData.reduce((acc: any[], entry) => {
-                      const existingDate = acc.find((item) => item.date === entry.date)
-                      if (existingDate) {
-                        existingDate.hielo += entry.hielo_quantity
-                        existingDate.botellon += entry.botellon_quantity
-                      } else {
-                        acc.push({
-                          date: entry.date,
-                          hielo: entry.hielo_quantity,
-                          botellon: entry.botellon_quantity,
-                        })
-                      }
-                      return acc
-                    }, [])}
+                    data={getTimelineData()}
                     margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                   >
                     <CartesianGrid strokeDasharray="3 3" />
