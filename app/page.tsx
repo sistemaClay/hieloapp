@@ -12,19 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
-import {
-  CalendarDays,
-  Package,
-  TrendingDown,
-  TrendingUp,
-  Snowflake,
-  Droplets,
-  AlertTriangle,
-  RefreshCw,
-  MapPin,
-  ArrowDown,
-  ArrowUp,
-} from "lucide-react"
+import { CalendarDays, Package, TrendingDown, TrendingUp, Snowflake, Droplets, AlertTriangle, RefreshCw, MapPin, ArrowDown, ArrowUp } from 'lucide-react'
 import {
   supabase,
   type InventoryItem,
@@ -40,6 +28,7 @@ import { ImageViewer } from "@/components/image-viewer"
 import { useToast } from "@/hooks/use-toast"
 import { ValidationModal } from "@/components/validation-modal"
 import { Reports } from "@/components/reports"
+import { CompanyLogo } from "@/components/company-logo"
 
 export default function InventoryControl() {
   const [inventory, setInventory] = useState<InventoryItem[]>([])
@@ -214,6 +203,23 @@ export default function InventoryControl() {
         "Ingresa cantidad de hielo",
         "Ingresa cantidad de botellones",
         "O ambos productos",
+      ])
+      return
+    }
+
+    // Verificar límites máximos
+    if (hieloQty > 50) {
+      showValidationModal("error", "Cantidad Excedida", "No puedes ingresar más de 50 bolsas de hielo en una sola operación", [
+        `Cantidad solicitada: ${hieloQty} bolsas`,
+        "Máximo permitido: 50 bolsas por operación"
+      ])
+      return
+    }
+
+    if (botellonQty > 50) {
+      showValidationModal("error", "Cantidad Excedida", "No puedes ingresar más de 50 botellones en una sola operación", [
+        `Cantidad solicitada: ${botellonQty} botellones`,
+        "Máximo permitido: 50 botellones por operación"
       ])
       return
     }
@@ -407,17 +413,8 @@ export default function InventoryControl() {
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Header */}
         <div className="text-center space-y-4">
-          <div className="flex items-center justify-center gap-4">
-            <img
-              src="/images/logo-la-clay.png"
-              alt="Ladrillera La Clay S.A.S"
-              className="h-16 w-auto"
-              crossOrigin="anonymous"
-            />
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Control de Inventario</h1>
-              <p className="text-gray-600">LADRILLERA LA CLAY S.A.S</p>
-            </div>
+          <div className="flex items-center justify-center">
+            <CompanyLogo />
           </div>
           <p className="text-gray-600">Gestión de hielo y botellones de agua por áreas</p>
           <Button onClick={loadData} variant="outline" size="sm" disabled={loading}>
@@ -430,7 +427,7 @@ export default function InventoryControl() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Hielo Disponible</CardTitle>
+              <CardTitle className="text-sm font-medium">Hielo</CardTitle>
               <div className="flex items-center gap-2">
                 <Snowflake className="h-4 w-4 text-blue-600" />
                 {getInventoryByProduct("hielo") <= (inventory.find((i) => i.product === "hielo")?.min_stock || 0) && (
@@ -446,7 +443,7 @@ export default function InventoryControl() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Botellones Disponibles</CardTitle>
+              <CardTitle className="text-sm font-medium">Botellones</CardTitle>
               <div className="flex items-center gap-2">
                 <Droplets className="h-4 w-4 text-cyan-600" />
                 {getInventoryByProduct("botellon") <=
@@ -463,7 +460,7 @@ export default function InventoryControl() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Entradas Hoy</CardTitle>
+              <CardTitle className="text-sm font-medium">Entradas</CardTitle>
               <div className="flex items-center gap-1">
                 <ArrowDown className="h-4 w-4 text-green-600" />
                 <TrendingUp className="h-4 w-4 text-green-600" />
@@ -471,13 +468,13 @@ export default function InventoryControl() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-green-600">{getTotalMovements("entrada")}</div>
-              <p className="text-xs text-muted-foreground">movimientos</p>
+              <p className="text-xs text-muted-foreground">movimientos hoy</p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Salidas Hoy</CardTitle>
+              <CardTitle className="text-sm font-medium">Salidas</CardTitle>
               <div className="flex items-center gap-1">
                 <ArrowUp className="h-4 w-4 text-red-600" />
                 <TrendingDown className="h-4 w-4 text-red-600" />
@@ -485,7 +482,7 @@ export default function InventoryControl() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-red-600">{getTotalMovements("salida")}</div>
-              <p className="text-xs text-muted-foreground">movimientos</p>
+              <p className="text-xs text-muted-foreground">movimientos hoy</p>
             </CardContent>
           </Card>
         </div>
@@ -555,12 +552,13 @@ export default function InventoryControl() {
                     <div className="space-y-2">
                       <Label htmlFor="hieloQuantity" className="flex items-center gap-2">
                         <Snowflake className="h-4 w-4 text-blue-600" />
-                        Cantidad de Hielo (Opcional)
+                        Cantidad de Hielo (Máx. 50)
                       </Label>
                       <Input
                         id="hieloQuantity"
                         type="number"
                         min="0"
+                        max="50"
                         placeholder="0"
                         value={formData.hieloQuantity}
                         onChange={(e) => setFormData((prev) => ({ ...prev, hieloQuantity: e.target.value }))}
@@ -570,12 +568,13 @@ export default function InventoryControl() {
                     <div className="space-y-2">
                       <Label htmlFor="botellonQuantity" className="flex items-center gap-2">
                         <Droplets className="h-4 w-4 text-cyan-600" />
-                        Cantidad de Botellones (Opcional)
+                        Cantidad de Botellones (Máx. 50)
                       </Label>
                       <Input
                         id="botellonQuantity"
                         type="number"
                         min="0"
+                        max="50"
                         placeholder="0"
                         value={formData.botellonQuantity}
                         onChange={(e) => setFormData((prev) => ({ ...prev, botellonQuantity: e.target.value }))}

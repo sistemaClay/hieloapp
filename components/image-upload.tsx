@@ -6,7 +6,7 @@ import { useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent } from "@/components/ui/card"
-import { Camera, Upload, X, Loader2 } from "lucide-react"
+import { Camera, Upload, X, Loader2, ImageIcon } from 'lucide-react'
 import { uploadImage } from "@/lib/supabase"
 import { useToast } from "@/hooks/use-toast"
 
@@ -19,11 +19,11 @@ interface ImageUploadProps {
 export function ImageUpload({ onImageUploaded, currentImage, required = false }: ImageUploadProps) {
   const [uploading, setUploading] = useState(false)
   const [preview, setPreview] = useState<string | null>(currentImage || null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const cameraInputRef = useRef<HTMLInputElement>(null)
+  const galleryInputRef = useRef<HTMLInputElement>(null)
   const { toast } = useToast()
 
-  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
+  const handleFileSelect = async (file: File) => {
     if (!file) return
 
     // Validar tipo de archivo
@@ -77,16 +77,37 @@ export function ImageUpload({ onImageUploaded, currentImage, required = false }:
     }
   }
 
-  const handleRemoveImage = () => {
-    setPreview(null)
-    onImageUploaded("")
-    if (fileInputRef.current) {
-      fileInputRef.current.value = ""
+  const handleCameraCapture = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (file) {
+      handleFileSelect(file)
     }
   }
 
-  const handleButtonClick = () => {
-    fileInputRef.current?.click()
+  const handleGallerySelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (file) {
+      handleFileSelect(file)
+    }
+  }
+
+  const handleRemoveImage = () => {
+    setPreview(null)
+    onImageUploaded("")
+    if (cameraInputRef.current) {
+      cameraInputRef.current.value = ""
+    }
+    if (galleryInputRef.current) {
+      galleryInputRef.current.value = ""
+    }
+  }
+
+  const handleCameraClick = () => {
+    cameraInputRef.current?.click()
+  }
+
+  const handleGalleryClick = () => {
+    galleryInputRef.current?.click()
   }
 
   return (
@@ -96,11 +117,23 @@ export function ImageUpload({ onImageUploaded, currentImage, required = false }:
         Fotografía del Producto {required && <span className="text-red-500">*</span>}
       </Label>
 
+      {/* Input oculto para cámara */}
       <input
-        ref={fileInputRef}
+        ref={cameraInputRef}
         type="file"
         accept="image/*"
-        onChange={handleFileSelect}
+        capture="environment"
+        onChange={handleCameraCapture}
+        className="hidden"
+        disabled={uploading}
+      />
+
+      {/* Input oculto para galería */}
+      <input
+        ref={galleryInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleGallerySelect}
         className="hidden"
         disabled={uploading}
       />
@@ -131,29 +164,55 @@ export function ImageUpload({ onImageUploaded, currentImage, required = false }:
       ) : (
         <Card className="border-dashed border-2 border-gray-300 hover:border-gray-400 transition-colors">
           <CardContent className="p-6">
-            <div className="text-center">
+            <div className="text-center space-y-4">
               <div className="mx-auto h-12 w-12 text-gray-400 mb-4">
                 {uploading ? <Loader2 className="h-12 w-12 animate-spin" /> : <Upload className="h-12 w-12" />}
               </div>
-              <div className="space-y-2">
-                <p className="text-sm text-gray-600">
-                  {uploading ? "Subiendo imagen..." : "Haz clic para seleccionar una imagen"}
-                </p>
-                <Button type="button" variant="outline" onClick={handleButtonClick} disabled={uploading}>
-                  {uploading ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Subiendo...
-                    </>
-                  ) : (
-                    <>
-                      <Camera className="h-4 w-4 mr-2" />
-                      Seleccionar Imagen
-                    </>
-                  )}
-                </Button>
-              </div>
-              <p className="text-xs text-gray-500 mt-2">PNG, JPG, GIF hasta 5MB</p>
+              
+              {uploading ? (
+                <div className="space-y-2">
+                  <p className="text-sm text-gray-600">Subiendo imagen...</p>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div className="bg-blue-600 h-2 rounded-full animate-pulse" style={{ width: "60%" }}></div>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <p className="text-sm text-gray-600">Selecciona cómo quieres agregar la imagen</p>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      onClick={handleCameraClick} 
+                      disabled={uploading}
+                      className="flex flex-col items-center gap-2 h-auto py-4"
+                    >
+                      <Camera className="h-6 w-6 text-blue-600" />
+                      <div className="text-center">
+                        <div className="font-medium">Tomar Foto</div>
+                        <div className="text-xs text-muted-foreground">Usar cámara</div>
+                      </div>
+                    </Button>
+                    
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      onClick={handleGalleryClick} 
+                      disabled={uploading}
+                      className="flex flex-col items-center gap-2 h-auto py-4"
+                    >
+                      <ImageIcon className="h-6 w-6 text-green-600" />
+                      <div className="text-center">
+                        <div className="font-medium">Galería</div>
+                        <div className="text-xs text-muted-foreground">Seleccionar imagen</div>
+                      </div>
+                    </Button>
+                  </div>
+                </div>
+              )}
+              
+              <p className="text-xs text-gray-500">PNG, JPG, GIF hasta 5MB</p>
             </div>
           </CardContent>
         </Card>
